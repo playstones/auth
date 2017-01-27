@@ -5,6 +5,8 @@ import (
     "net/http"
     "github.com/gorilla/mux"
 	"encoding/json"
+    "crypto/tls"
+    "golang.org/x/crypto/acme/autocert"
 )
 
 func main() {
@@ -13,10 +15,23 @@ func main() {
 }
 
 func listenServer() {
+
+    certManager := autocert.Manager{
+        Prompt: autocert.AcceptTOS,
+        HostPolicy:autocert.HostWhitelist("air.coretime.cn"),
+        Cache: autocert.DirCache("/etc/letsencrypt/csr/"),
+    }
+
 	r := mux.NewRouter()
 	r.HandleFunc("/", auth).Methods("GET")
 	http.Handle("/", r)
-	http.ListenAndServe(":8080", nil)
+    server := &http.Server{
+        Addr: ":443",
+        TLSConfig:&tls.Config{
+            GetCertificate:certManager.GetCertificate,
+        },
+    }
+    server.ListenAndServeTLS("","")
 }
 
 func auth(w http.ResponseWriter, r *http.Request)  {
